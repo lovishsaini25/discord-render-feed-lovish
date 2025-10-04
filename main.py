@@ -17,10 +17,10 @@ logging.basicConfig(
 )
 
 # ====== CONFIG ======
-API_ID = int(21803950)
-API_HASH = "a807300384bfac117cf12859c218688a"
+API_ID = int(os.environ.get("TG_API_ID"))
+API_HASH = os.environ.get("TG_API_HASH")
 CHANNELS = ["Stock_aaj_or_kal", "fundamental_analysis_lovish", "stockinsights01", "fundamental3"]
-DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1424049697420611666/t6grGqVNgM9p22g-U1GeHkTrN-tnXKeJaPSIoAjbIyUJKEDnqhV7QuPqacW13Mn2OhdU"
+DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK")
 SESSION = "session"
 LAST_FILE = "last.json"
 
