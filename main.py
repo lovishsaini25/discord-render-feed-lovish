@@ -48,7 +48,7 @@ async def handler(event):
     save_id(mid)
 
 async def main():
-    await client.start()
+    await client.start(bot_token=os.environ['BOT_TOKEN'])
     print(f"Listening to t.me/{CHANNEL} ...")
     await client.run_until_disconnected()
 
