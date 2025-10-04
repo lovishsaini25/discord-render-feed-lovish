@@ -10,7 +10,7 @@ import asyncio
 # ====== CONFIG ======
 API_ID = int(os.environ.get("TG_API_ID"))      # from my.telegram.org
 API_HASH = os.environ.get("TG_API_HASH")
-CHANNEL = "earnings_pulse"                     # without @
+CHANNEL = "Stock_aaj_or_kal"                     # without @
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK")
 SESSION = "session"
 LAST_FILE = "last.json"
