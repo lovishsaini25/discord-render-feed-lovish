@@ -7,10 +7,18 @@ import asyncio
 # ====== CONFIG ======
 API_ID = int(os.environ.get("TG_API_ID"))
 API_HASH = os.environ.get("TG_API_HASH")
-CHANNEL = "Stock_aaj_or_kal"
+
+# Multiple channels list
+CHANNELS = [
+    "Stock_aaj_or_kal",
+    -1331753715,
+    "stockinsights01",
+    "fundamental3"
+]
+
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK")
 SESSION = "session"
-LAST_FILE = "last.json"
+LAST_FILE = "last_multi.json"
 
 client = TelegramClient(SESSION, API_ID, API_HASH)
 
@@ -18,7 +26,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"News Bot is running")
+        self.wfile.write(b"Multi-Channel News Bot Running")
     def log_message(self, format, *args):
         pass
 
@@ -28,16 +36,22 @@ def run_server():
 
 threading.Thread(target=run_server, daemon=True).start()
 
-def last_id():
+def load_last_ids():
     try:
         with open(LAST_FILE) as f: 
-            return json.load(f)["id"]
+            return json.load(f)
     except: 
-        return 0
+        return {}
 
-def save_id(i):
-    with open(LAST_FILE,"w") as f: 
-        json.dump({"id":i},f)
+def save_last_id(channel, msg_id):
+    data = load_last_ids()
+    data[channel] = msg_id
+    with open(LAST_FILE, "w") as f: 
+        json.dump(data, f)
+
+def get_last_id(channel):
+    data = load_last_ids()
+    return data.get(channel, 0)
 
 def post_discord(text):
     if not text: return
@@ -45,52 +59,48 @@ def post_discord(text):
         text = text[:1900]+"...(truncated)"
     try:
         response = requests.post(DISCORD_WEBHOOK, json={"content": text}, timeout=10)
-        print(f"Discord response: {response.status_code}")
+        print(f"Discord: {response.status_code}")
     except Exception as e:
         print(f"Discord error: {e}")
 
-@client.on(events.NewMessage(chats=CHANNEL))
+@client.on(events.NewMessage(chats=CHANNELS))
 async def handler(event):
     msg = event.message
     mid = msg.id
-    txt = msg.message or ""
+    chat = await event.get_chat()
+    channel_name = chat.username or chat.title
     
-    print(f"📨 New message ID: {mid}, Last ID: {last_id()}")
-    print(f"📄 Message: {txt[:100]}...")
+    print(f"📨 {channel_name}: Message ID {mid}")
     
-    if mid <= last_id(): 
-        print("⏭️ Message already processed, skipping")
+    if mid <= get_last_id(channel_name): 
         return
     
-    link = f"https://t.me/{CHANNEL}/{mid}"
+    txt = msg.message or ""
+    link = f"https://t.me/{channel_name}/{mid}"
     
     if msg.media:
         txt += "\n[📎 Media attached — view on Telegram]"
     
-    discord_message = f"📢 {txt}\n\n🔗 {link}"
+    # Include channel source in Discord message
+    discord_message = f"📢 **{channel_name}**\n\n{txt}\n\n🔗 [View Message]({link})"
+    
     post_discord(discord_message)
-    save_id(mid)
-    print("✅ Message forwarded to Discord")
+    save_last_id(channel_name, mid)
+    print(f"✅ Forwarded from {channel_name}")
 
 async def main():
     await client.start(bot_token=os.environ['BOT_TOKEN'])
     print("✅ Connected to Telegram")
     
-    # Get recent messages to test
-    try:
-        entity = await client.get_entity(CHANNEL)
-        print(f"📢 Channel: {entity.title}")
-        
-        # Get last 3 messages to see if bot can read the channel
-        messages = await client.get_messages(CHANNEL, limit=3)
-        print(f"📊 Found {len(messages)} recent messages")
-        for msg in messages:
-            print(f"  - ID: {msg.id}, Text: {(msg.message or 'No text')[:50]}...")
-            
-    except Exception as e:
-        print(f"❌ Channel access error: {e}")
+    # Verify access to all channels
+    for channel in CHANNELS:
+        try:
+            entity = await client.get_entity(channel)
+            print(f"📢 Connected to: {entity.title} (@{channel})")
+        except Exception as e:
+            print(f"❌ Cannot access {channel}: {e}")
     
-    print(f"📡 Listening to t.me/{CHANNEL} ...")
+    print(f"📡 Monitoring {len(CHANNELS)} channels...")
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
