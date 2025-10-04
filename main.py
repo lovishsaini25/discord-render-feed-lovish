@@ -73,7 +73,7 @@ async def handler(event):
     print("✅ Message forwarded to Discord")
 
 async def main():
-    await client.start()
+    await client.start(bot_token=os.environ['BOT_TOKEN'])
     print("✅ Connected to Telegram")
     
     # Get recent messages to test
