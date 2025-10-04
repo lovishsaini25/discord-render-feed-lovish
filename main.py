@@ -17,10 +17,10 @@ logging.basicConfig(
 )
 
 # ====== CONFIG ======
-API_ID = int(os.environ.get("TG_API_ID"))
-API_HASH = os.environ.get("TG_API_HASH")
+API_ID = int(21803950)
+API_HASH = "a807300384bfac117cf12859c218688a"
 CHANNELS = ["Stock_aaj_or_kal", "fundamental_analysis_lovish", "stockinsights01", "fundamental3"]
-DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK")
+DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1424049697420611666/t6grGqVNgM9p22g-U1GeHkTrN-tnXKeJaPSIoAjbIyUJKEDnqhV7QuPqacW13Mn2OhdU"
 SESSION = "session"
 LAST_FILE = "last.json"
 
@@ -48,16 +48,22 @@ def run_server():
 
 threading.Thread(target=run_server, daemon=True).start()
 
-def last_id():
+def load_last_ids():
     try:
         with open(LAST_FILE) as f: 
-            return json.load(f)["id"]
+            return json.load(f)
     except: 
-        return 0
+        return {}
 
-def save_id(i):
-    with open(LAST_FILE,"w") as f: 
-        json.dump({"id":i},f)
+def save_last_id(channel, msg_id):
+    data = load_last_ids()
+    data[channel] = msg_id
+    with open(LAST_FILE, "w") as f: 
+        json.dump(data, f)
+
+def get_last_id(channel):
+    data = load_last_ids()
+    return data.get(channel, 0)
 
 def post_discord(text):
     try:
@@ -105,29 +111,24 @@ async def handler(event):
         chat = await event.get_chat()
         channel_name = getattr(chat, 'username', None) or chat.title or 'Unknown'
         
-        logging.info(f"🔥 NEW MESSAGE DETECTED!")
-        logging.info(f"Channel: {channel_name}")
-        logging.info(f"Message ID: {mid}")
-        logging.info(f"Last processed ID: {last_id()}")
-        logging.info(f"Message text: {(msg.message or 'No text')[:200]}")
+        logging.info(f"🔥 NEW MESSAGE from {channel_name}")
+        logging.info(f"Message ID: {mid}, Last processed: {get_last_id(channel_name)}")
         
-        if mid <= last_id():
-            logging.info("⏭️ Message already processed, skipping")
+        # Check last ID per channel
+        if mid <= get_last_id(channel_name):
+            logging.info(f"⏭️ Already processed for {channel_name}")
             return
         
         txt = msg.message or "Media message"
-        link = f"https://t.me/{channel_name}/{mid}" if hasattr(chat, 'username') and chat.username else f"Message ID: {mid}"
         
         if msg.media:
-            txt += "\n[📎 Media attached]"
+            txt += "\n\n[📎 Media content]"
         
-        discord_message = f"📢 **{channel_name}**\n\n{txt}\n\n🔗 {link}"
+        discord_message = f"{txt}"
         
         if post_discord(discord_message):
-            save_id(mid)
-            logging.info("✅ Message forwarded successfully")
-        else:
-            logging.error("❌ Failed to forward to Discord")
+            save_last_id(channel_name, mid)  # Save per channel
+            logging.info(f"✅ Forwarded from {channel_name}")
             
     except Exception as e:
         logging.error(f"❌ Handler error: {e}")
@@ -137,7 +138,7 @@ async def main():
         logging.info("🚀 Starting Telegram bot...")
         
         # Start client
-        await client.start(bot_token=os.environ['BOT_TOKEN'])
+        await client.start()
         logging.info("✅ Telegram client started")
         
         # Test connection
