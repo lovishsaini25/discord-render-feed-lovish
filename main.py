@@ -58,7 +58,6 @@ async def handler(event):
     mid = msg.id
     if mid <= last_id(): return
     txt = msg.message or ""
-    if KEYWORDS and not any(k in txt.lower() for k in KEYWORDS): return
     link = f"https://t.me/{CHANNEL}/{mid}"
     if msg.media:
         txt += "\n[Media attached — view on Telegram]"
