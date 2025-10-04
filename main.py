@@ -3,6 +3,9 @@
 
 from telethon import TelegramClient, events
 import requests, os, json
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
+import asyncio
 
 # ====== CONFIG ======
 API_ID = int(os.environ.get("TG_API_ID"))      # from my.telegram.org
@@ -18,6 +21,21 @@ KEYWORDS = ["result","results","earnings","profit","loss","quarter","q1","q2","q
 
 client = TelegramClient(SESSION, API_ID, API_HASH)
 
+# ====== DUMMY HTTP SERVER FOR RENDER FREE WEB SERVICE ======
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running")
+
+def run_server():
+    server = HTTPServer(("0.0.0.0", 10000), Handler)
+    server.serve_forever()
+
+threading.Thread(target=run_server, daemon=True).start()
+print("Dummy HTTP server running on port 10000 ...")
+
+# ====== TELEGRAM → DISCORD BOT ======
 def last_id():
     try:
         with open(LAST_FILE) as f: return json.load(f)["id"]
@@ -53,5 +71,4 @@ async def main():
     await client.run_until_disconnected()
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
