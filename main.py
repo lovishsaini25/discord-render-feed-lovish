@@ -11,7 +11,7 @@ API_HASH = os.environ.get("TG_API_HASH")
 # Multiple channels list
 CHANNELS = [
     "Stock_aaj_or_kal",
-    -1331753715,
+    "fundamental_analysis_lovish",
     "stockinsights01",
     "fundamental3"
 ]
